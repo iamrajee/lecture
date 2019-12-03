@@ -134,17 +134,27 @@ class RobotModel():
             T_offset = joint.T  # fixed transform from parent to joint frame
             # post-multiply joint's motion transform (rotation / translation along joint axis)
             if joint.jtype == Joint.revolute:
+                # express twist in link-frame for now (need to invert transform)
+                twist = adjoint(T, inverse=True).dot(numpy.block([numpy.zeros(3), joint.axis]))
                 T_motion = tf.quaternion_matrix(tf.quaternion_about_axis(angle=value(joint), axis=joint.axis))
                 T_offset = T_offset.dot(T_motion)
             elif joint.jtype == Joint.prismatic:
+                twist = adjoint(T, inverse=True).dot(numpy.block([joint.axis, numpy.zeros(3)]))
                 T_motion = tf.translation_matrix(value(joint) * joint.axis)
                 T_offset = T_offset.dot(T_motion)
             elif joint.jtype == Joint.fixed:
                 pass
             else:
                 raise Exception("unknown joint type: " + str(joint.jtype))
-            # TODO: actually compute forward kinematics
+            T = T_offset.dot(T)
+            # update the Jacobian column of corresponding joint index
+            idx, scale = index(joint)
+            if idx is not None:
+                J[:,idx] += scale * twist
             joint = self.links[joint.parent]
+        # transform Jacobian from end-effector frame to base frame (only orientation)
+        R = T[0:3,0:3]
+        J = numpy.block([[R, numpy.zeros((3,3))], [numpy.zeros((3,3)), R]]).dot(J)
         return T, J
 
 
