@@ -152,9 +152,6 @@ class RobotModel():
             if idx is not None:
                 J[:,idx] += scale * twist
             joint = self.links[joint.parent]
-        # transform Jacobian from end-effector frame to base frame (only orientation)
-        R = T[0:3,0:3]
-        J = numpy.block([[R, numpy.zeros((3,3))], [numpy.zeros((3,3)), R]]).dot(J)
         return T, J
 
 

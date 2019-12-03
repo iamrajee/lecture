@@ -96,15 +96,15 @@ class Controller(object):
 
     @staticmethod
     def position_error(T_tgt, T_cur):
-        return T_tgt[0:3,3]-T_cur[0:3,3]
+        # transform error vector from base frame to end-effector frame
+        return T_cur[0:3,0:3].T.dot(T_tgt[0:3,3]-T_cur[0:3,3])
 
     @staticmethod
     def orientation_error(T_tgt, T_cur):
         delta = numpy.eye(4)
         delta[0:3,0:3] = T_cur[0:3,0:3].T.dot(T_tgt[0:3,0:3])
         angle, axis, _ = tf.rotation_from_matrix(delta)
-        # transform rotational velocity from end-effector into base frame orientation (only R!)
-        return T_cur[0:3,0:3].dot(angle * axis)
+        return angle * axis
 
     def position_control(self):
         v = self.position_error(self.im_server.target, self.T)
